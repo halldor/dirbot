@@ -1,10 +1,9 @@
-from scrapy.spiders import Spider
-from scrapy.selector import Selector
+import scrapy
 
-from dirbot.items import Website
+from ..items import Website
 
 
-class DmozSpider(Spider):
+class DmozSpider(scrapy.Spider):
     name = "dmoz"
     allowed_domains = ["dmoz.org"]
     start_urls = [
@@ -18,17 +17,13 @@ class DmozSpider(Spider):
         http://doc.scrapy.org/en/latest/topics/contracts.html
 
         @url http://www.dmoz.org/Computers/Programming/Languages/Python/Resources/
-        @scrapes name
+        @scrapes name url description
+        @returns items 1
         """
-        sel = Selector(response)
-        sites = sel.xpath('//ul[@class="directory-url"]/li')
-        items = []
-
-        for site in sites:
+        selector = "//div[contains(@class, 'site-item')]/div[contains(@class, 'title-and-desc')]"
+        for site in response.xpath(selector):
             item = Website()
-            item['name'] = site.xpath('a/text()').extract()
-            item['url'] = site.xpath('a/@href').extract()
-            item['description'] = site.xpath('text()').re('-\s[^\n]*\\r')
-            items.append(item)
-
-        return items
+            item['url'] = site.xpath("a/@href").extract_first()
+            item['name'] = site.xpath("a/div[contains(@class, 'site-title')]/text()").extract_first()
+            item['description'] = site.xpath("div[contains(@class, 'site-descr')]/text()").re_first('\s*([^\n]*)\\r')
+            yield item
